@@ -87,13 +87,7 @@
   var MAX = 10;
   function jam(offsetDetik) { return new Date(Date.now() - offsetDetik * 1000).toLocaleTimeString("id-ID"); }
 
-  // ---- siapkan riwayat awal supaya grafik langsung terisi ----
   var hist = { label: [], suhu: [], humi: [], gas: [], co2: [] };
-  for (var i = MAX - 1; i >= 0; i--) {
-    var x = ambilData();
-    hist.label.push(jam(i * 2)); hist.suhu.push(x.suhu); hist.humi.push(x.humi);
-    hist.gas.push(x.gas); hist.co2.push(x.co2);
-  }
 
   function seri(nama, warna, rgba, data) {
     return { label: nama, borderColor: warna, pointBackgroundColor: rgba, pointRadius: 0,

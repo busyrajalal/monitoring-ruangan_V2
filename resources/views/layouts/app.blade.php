@@ -66,6 +66,11 @@
     <script src="{{ asset('assets/js/plugin/chart.js/chart.min.js') }}"></script>
     <script src="{{ asset('assets/js/kaiadmin.min.js') }}"></script>
     <!-- Sumber data sensor (dummy) -->
+    <script>
+      window.API = {
+        terbaru: "{{ url('api/sensor/terbaru') }}",
+      };
+    </script>
     <script src="{{ asset('assets/js/monitoring-data.js') }}"></script>
     @stack('scripts')
   </body>
