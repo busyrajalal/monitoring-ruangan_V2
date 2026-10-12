@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HistoryDhtmq;
+use Carbon\Carbon;
 use App\Models\SensorDhtmq;
 use Illuminate\Support\Facades\DB;
 
@@ -10,12 +12,14 @@ class ControllerDhtmq extends Controller
     protected $db;
     protected $builder;
     protected $SensorDhtmq;
+    protected $HistoryDhtmq;
 
     public function __construct() {
         $this->db = DB::connection();
         $this->builder = DB::table('sensor_dhtmq');
 
         $this->SensorDhtmq = new SensorDhtmq();
+        $this->HistoryDhtmq = new HistoryDhtmq();
     }
 
     public function index()
@@ -69,6 +73,10 @@ class ControllerDhtmq extends Controller
         ];
 
         $this->builder->updateOrInsert(['id' => 1], $updateData);
+        $terakhir = $this->HistoryDhtmq->max('waktu');
+        if (!$terakhir || Carbon::parse($terakhir)->addMinute()->lte(now())) {
+            $this->HistoryDhtmq->create($updateData);
+        }
 
         return 'OK';
     }
