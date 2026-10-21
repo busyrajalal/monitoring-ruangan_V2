@@ -24,5 +24,6 @@ class HistoryDhtmq extends Model
         'benzena'    => 'float',
         'alkohol'    => 'float',
         'asap'       => 'float',
+        'waktu'      => 'datetime',
     ];
 }

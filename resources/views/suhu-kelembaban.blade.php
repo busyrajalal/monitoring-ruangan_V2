@@ -77,7 +77,7 @@
               <div class="card-head-row">
                 <div>
                   <div class="card-title"><i class="fas fa-history me-2 text-primary"></i>Log Data Terakhir</div>
-                  <div class="card-category">10 pembacaan sensor terbaru (diperbarui tiap 5 detik)</div>
+                  <div class="card-category">10 data riwayat terbaru (tersimpan tiap 1 menit, tabel dimuat ulang otomatis)</div>
                 </div>
                 <div class="card-tools">
                   <button type="button" class="btn btn-label-success btn-round btn-sm me-2" id="btnExcel">
@@ -249,44 +249,48 @@
   setRentang("24");
 
   // ====================== 3. TABEL LOG & EXPORT ======================
+  // Sumber: tabel history_dhtmq lewat GET /api/history-dhtmq/log (10 baris terbaru)
+  var URL_LOG = "{{ url('api/history-dhtmq/log') }}";
   var logRows = [];     // terbaru di indeks 0, maksimal 10 baris
 
-  function tambahLog(waktu, d) {
-    var lv = Math.max(levelSuhu(d.suhu), levelHumi(d.humi));
-    logRows.unshift({ waktu: waktu, suhu: d.suhu, humi: d.humi, status: NAMA_LEVEL[lv], warna: WARNA_LEVEL[lv] });
-    if (logRows.length > 10) logRows.pop();
-  }
-  function renderLog() {
+  function renderLog(gagal) {
     var html = "";
+    if (logRows.length === 0) {
+      html = '<tr><td colspan="5" class="text-center text-muted py-4">' +
+             (gagal ? "Gagal memuat data dari server." : "Belum ada data riwayat.") + "</td></tr>";
+    }
     logRows.forEach(function (r, i) {
       html += "<tr>" +
         '<td class="ps-4">' + (i + 1) + "</td>" +
-        "<td>" + fmtWaktu(r.waktu) + "</td>" +
+        "<td>" + r.waktu + "</td>" +
         "<td>" + r.suhu.toFixed(1) + " °C</td>" +
-        "<td>" + r.humi + " %</td>" +
+        "<td>" + Math.round(r.humi) + " %</td>" +
         '<td><span class="badge badge-' + r.warna + '">' + r.status + "</span></td>" +
         "</tr>";
     });
     document.getElementById("logBody").innerHTML = html;
   }
 
-  // isi awal: 10 pembacaan mundur tiap 5 detik
-  (function () {
-    var awal = [];
-    for (var i = 9; i >= 0; i--) awal.push({ w: new Date(Date.now() - i * 5000), d: ambilData() });
-    awal.forEach(function (x) { tambahLog(x.w, x.d); });
-    renderLog();
-    var terbaru = awal[awal.length - 1].d;
-    updateNyaman(terbaru.suhu, terbaru.humi);
-  })();
+  function muatLog() {
+    fetch(URL_LOG, { headers: { Accept: "application/json" } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        logRows = data.map(function (d) {
+          var suhu = +d.suhu, humi = +d.humi;
+          var lv = Math.max(levelSuhu(suhu), levelHumi(humi));
+          return { waktu: d.waktu, suhu: suhu, humi: humi, status: NAMA_LEVEL[lv], warna: WARNA_LEVEL[lv] };
+        });
+        renderLog();
+      })
+      .catch(function () { renderLog(true); });   // baris lama tetap tampil kalau sebelumnya sudah ada
+  }
+  muatLog();
+  setInterval(muatLog, 5000);
 
-  // pembacaan baru tiap 5 detik
-  setInterval(function () {
-    var d = ambilData();
-    tambahLog(new Date(), d);
-    renderLog();
-    updateNyaman(d.suhu, d.humi);
-  }, 5000);
+  // Indeks kenyamanan tetap memakai pembacaan real-time (dashboard-realtime)
+  function segarkanNyaman() { var d = ambilData(); updateNyaman(d.suhu, d.humi); }
+  segarkanNyaman();
+  setInterval(segarkanNyaman, 5000);
 
   // ---- export ----
   function angka(n, desimal) { return String(n.toFixed(desimal)).replace(".", CSV_DESIMAL); }
@@ -303,7 +307,7 @@
     var baris = ["No", "Timestamp", "Suhu (C)", "Kelembaban (%)", "Status"].join(CSV_PEMISAH);
     var isi = [baris];
     logRows.forEach(function (r, i) {
-      isi.push([i + 1, fmtWaktu(r.waktu), angka(r.suhu, 1), angka(r.humi, 0), r.status].join(CSV_PEMISAH));
+      isi.push([i + 1, r.waktu, angka(r.suhu, 1), angka(r.humi, 0), r.status].join(CSV_PEMISAH));
     });
     unduh(isi.join("\r\n"), "log-suhu-kelembaban_" + stamp() + ".csv", "text/csv");
   });
@@ -311,7 +315,7 @@
   document.getElementById("btnExcel").addEventListener("click", function () {
     var t = '<table border="1"><tr><th>No</th><th>Timestamp</th><th>Suhu (C)</th><th>Kelembaban (%)</th><th>Status</th></tr>';
     logRows.forEach(function (r, i) {
-      t += "<tr><td>" + (i + 1) + "</td><td>" + fmtWaktu(r.waktu) + "</td><td>" + angka(r.suhu, 1) +
+      t += "<tr><td>" + (i + 1) + "</td><td>" + r.waktu + "</td><td>" + angka(r.suhu, 1) +
            "</td><td>" + angka(r.humi, 0) + "</td><td>" + r.status + "</td></tr>";
     });
     t += "</table>";
