@@ -7,7 +7,7 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-# Monitoring Ruangan (DHT11 + MQ-135 + ESP8266)
+# Sensor Teknologi Otomatis untuk Nvigasi Operasional Ruangan (SENTONO)
 
 Dashboard monitoring suhu, kelembaban, dan kualitas udara berbasis **Laravel 12**
 dengan template **KaiAdmin Lite**. Data dikirim oleh **NodeMCU ESP8266** lewat URL (HTTP GET),
