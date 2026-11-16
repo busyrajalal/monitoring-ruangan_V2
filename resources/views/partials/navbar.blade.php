@@ -67,6 +67,7 @@
                     </form>
                   </ul>
                 </li>
+                @auth
                 <li class="nav-item topbar-user dropdown hidden-caret">
                   <a
                     class="dropdown-toggle profile-pic"
@@ -76,7 +77,8 @@
                   >
                     <span class="profile-username">
                       <span class="op-7">Hi,</span>
-                      <span class="fw-bold">Jalal</span>
+                      <!-- Mengambil nama dari database secara dinamis -->
+                      <span class="fw-bold">{{ Auth::user()->name }}</span>
                     </span>
                   </a>
                   <ul class="dropdown-menu dropdown-user animated fadeIn">
@@ -84,17 +86,26 @@
                       <li>
                         <div class="user-box">
                           <div class="u-text">
-                            <h4>Jalal</h4>
-                            <p class="text-muted">jalal@@example.com</p>
+                            <!-- Mengambil nama dan email dari database secara dinamis -->
+                            <h4>{{ Auth::user()->name }}</h4>
+                            <p class="text-muted">{{ Auth::user()->email }}</p>
                           </div>
                         </div>
                       </li>
                       <li>
-                        <a class="dropdown-item" href="{{ route('logout') }}">Logout</a>
+                        <div class="dropdown-divider"></div>
+                      </li>
+                      <li>
+                        <!-- Pastikan route logout menggunakan method POST jika tombolnya berupa form, atau tetap route biasa jika link GET -->
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">Logout</button>
+                        </form>
                       </li>
                     </div>
                   </ul>
                 </li>
+                @endauth
               </ul>
             </div>
           </nav>

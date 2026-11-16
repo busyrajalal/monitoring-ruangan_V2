@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Dashboard Monitoring Ruangan')
+@section('title', 'Dashboard Sentono')
 
 @section('custom-header')
 <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">

@@ -4,7 +4,7 @@
           <!-- Logo Header -->
           <div class="logo-header" data-background-color="dark">
             <a href="{{ route('dashboard') }}" class="logo">
-              <span class="fw-bold fs-4 text-white"><i class="fas fa-building"></i> Ruangan</span>
+              <span class="fw-bold fs-4 text-white"><img src="{{ asset('assets/img/sentono.png') }}" alt="Logo" width="30" height="30" class="me-2"> Sentono</span>
             </a>
             <div class="nav-toggle">
               <button class="btn btn-toggle toggle-sidebar">
