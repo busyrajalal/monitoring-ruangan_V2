@@ -10,10 +10,12 @@
 <body class="bg-light">
     <div class="container min-vh-100 d-flex flex-column justify-content-center align-items-center py-5">
 
-        {{-- Logo Laravel --}}
         <a href="{{ url('/') }}" class="mb-4" aria-label="Home">
             <img src="{{ asset('assets/img/sentono.png') }}" alt="Logo" width="56" height="58">
         </a>
+        <p>
+            <h4 class="fw-bold">Selamat Datang di Sentono</h4>
+            <span class="text-muted">Silakan register untuk membuat akun baru</span>
 
         <div class="card shadow-sm w-100" style="max-width: 420px;">
             <div class="card-body p-4">
