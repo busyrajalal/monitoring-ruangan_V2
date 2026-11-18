@@ -10,7 +10,7 @@ Route::post('/register/submit', [AuthController::class, 'registerSubmit'])->name
 Route::get('/login', [AuthController::class, 'loginLihat'])->name('login.lihat');
 Route::post('/login/submit', [AuthController::class, 'loginSubmit'])->name('login.submit');
 
-Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [ControllerDhtmq::class, 'index'])->name('dashboard');

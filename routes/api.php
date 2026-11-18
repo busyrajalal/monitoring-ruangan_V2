@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('terima-data/{suhu}/{kelembaban}/{gas}/{co2}/{amonia}/{benzena}/{alkohol}/{asap}', [ControllerDhtmq::class, 'update']);
 
 Route::get('dashboard-realtime', [ControllerDhtmq::class, 'getAllData']);
+Route::get('history-dhtmq/realtime', [ControllerHistoryDhtmq::class, 'getRealtime']);
 
 // history
 Route::get('history-dhtmq/riwayat', [ControllerHistoryDhtmq::class, 'getRiwayat']);

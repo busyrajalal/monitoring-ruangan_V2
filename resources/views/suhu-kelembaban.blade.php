@@ -4,18 +4,7 @@
 @section('breadcrumb', 'Suhu & Kelembaban')
 
 @section('content')
-      {{-- ============ 1. STAT CARDS ANALITIK ============ --}}
       <div class="row">
-        <div class="col-sm-12 col-md-4">
-          <div class="card card-stats card-round"><div class="card-body"><div class="row align-items-center">
-            <div class="col-icon"><div class="icon-big text-center icon-success bubble-shadow-small" id="icoNyaman"><i class="fas fa-smile"></i></div></div>
-            <div class="col col-stats ms-3 ms-sm-0"><div class="numbers">
-              <p class="card-category">Indeks Kenyamanan Ruangan</p>
-              <h4 class="card-title"><span id="idxNyaman">-</span> <span class="badge badge-success align-middle" id="badgeNyaman">-</span></h4>
-              <small class="text-muted">Thom's Discomfort Index (real-time)</small>
-            </div></div>
-          </div></div></div>
-        </div>
         <div class="col-sm-6 col-md-4">
           <div class="card card-stats card-round"><div class="card-body"><div class="row align-items-center">
             <div class="col-icon"><div class="icon-big text-center icon-primary bubble-shadow-small"><i class="fas fa-calculator"></i></div></div>
@@ -33,6 +22,16 @@
               <p class="card-category">Suhu Max / Min Hari Ini</p>
               <h4 class="card-title" id="maxMin">-</h4>
               <small class="text-muted" id="maxMinWaktu">-</small>
+            </div></div>
+          </div></div></div>
+        </div>
+        <div class="col-sm-12 col-md-4">
+          <div class="card card-stats card-round"><div class="card-body"><div class="row align-items-center">
+            <div class="col-icon"><div class="icon-big text-center icon-success bubble-shadow-small" id="icoNyaman"><i class="fas fa-smile"></i></div></div>
+            <div class="col col-stats ms-3 ms-sm-0"><div class="numbers">
+              <p class="card-category">Kondisi Kenyamanan Ruangan</p>
+              <h4 class="card-title"><span id="idxNyaman">-</span> <span class="badge badge-success align-middle" id="badgeNyaman">-</span></h4>
+              <small class="text-muted">Keadaan aktual di ruangan saat ini</small>
             </div></div>
           </div></div></div>
         </div>
@@ -113,103 +112,95 @@
 @push('scripts')
 <script>
   // ====================== KONFIGURASI ======================
-  var CSV_DESIMAL = ",";   // pakai "," untuk Excel Indonesia, "." untuk Excel bahasa Inggris
-  var CSV_PEMISAH = ";";   // pakai ";" untuk Excel Indonesia, "," untuk Excel bahasa Inggris
+  var CSV_DESIMAL = ","; 
+  var CSV_PEMISAH = ";"; 
 
-  // Batas status: 0 = Normal, 1 = Waspada, 2 = Bahaya (ubah sesuai kebutuhan)
-  function levelSuhu(t) { return (t >= 35 || t < 18) ? 2 : ((t >= 32 || t < 20) ? 1 : 0); }
-  function levelHumi(h) { return (h > 80 || h < 30) ? 2 : ((h > 70 || h < 40) ? 1 : 0); }
-  var NAMA_LEVEL  = ["Normal", "Waspada", "Bahaya"];
-  var WARNA_LEVEL = ["success", "warning", "danger"];
-
-  // ====================== UTIL ======================
+  // ====================== UTILITAS ======================
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   var HARI  = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   var BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-  function fmtWaktu(d) {
-    return pad(d.getDate()) + "-" + pad(d.getMonth() + 1) + "-" + d.getFullYear() + " " +
-           pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
-  }
   function rata(arr) { return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length; }
 
-  // Indeks kenyamanan (Thom's Discomfort Index)
-  function indeksNyaman(t, h) { return t - 0.55 * (1 - 0.01 * h) * (t - 14.5); }
-  function kategoriNyaman(di) {
-    if (di < 21) return { teks: "Nyaman",        warna: "success", ikon: "fa-smile" };
-    if (di < 24) return { teks: "Cukup Nyaman",  warna: "success", ikon: "fa-smile" };
-    if (di < 27) return { teks: "Kurang Nyaman", warna: "warning", ikon: "fa-meh" };
-    return              { teks: "Tidak Nyaman",  warna: "danger",  ikon: "fa-frown" };
-  }
-
-  // ====================== DATA RIWAYAT (DUMMY) ======================
-  // Nanti ganti fungsi bangunRiwayat() dengan fetch() ke API Laravel,
-  // format yang dikembalikan: { label: [], suhu: [], humi: [], waktu: [Date] }
-  var RENTANG = {
-    "24": { nama: "24 Jam Terakhir",  n: 24, stepJam: 1  },
-    "7":  { nama: "7 Hari Terakhir",  n: 28, stepJam: 6  },
-    "30": { nama: "30 Hari Terakhir", n: 30, stepJam: 24 },
-  };
-  function seeded(seed) {           // pseudo-random supaya grafik stabil saat filter diganti
-    return function () {
-      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  function bangunRiwayat(key) {
-    var r = RENTANG[key], rnd = seeded(parseInt(key, 10) * 1000 + 7);
-    var now = new Date(); now.setMinutes(0, 0, 0);
-    var out = { label: [], suhu: [], humi: [], waktu: [] };
-    for (var i = r.n - 1; i >= 0; i--) {
-      var t = new Date(now.getTime() - i * r.stepJam * 3600000);
-      var jam = r.stepJam >= 24 ? 12 : t.getHours();
-      var siklus = Math.sin((jam - 9) / 24 * 2 * Math.PI);          // puncak sekitar jam 15:00
-      var tren = r.stepJam >= 24 ? 1.2 * Math.sin(i / 4) : 0.6 * Math.sin(i / 9);
-      out.suhu.push(+(29.5 + 2.5 * siklus + tren + (rnd() - 0.5) * 0.8).toFixed(1));
-      out.humi.push(Math.round(64 - 8 * siklus - tren * 2 + (rnd() - 0.5) * 3));
-      out.waktu.push(t);
-      out.label.push(r.stepJam >= 24 ? t.getDate() + " " + BULAN[t.getMonth()]
-                   : r.stepJam >= 6  ? HARI[t.getDay()] + " " + pad(t.getHours()) + ":00"
-                   :                   pad(t.getHours()) + ":00");
+  // Penentuan status kenyamanan berdasarkan suhu aktual
+  function kategoriNyaman(suhu) {
+    if (suhu < 22) {
+      return { teks: "Dingin / Ber-AC", warna: "info", ikon: "fa-snowflake" };
+    } else if (suhu >= 22 && suhu <= 27) {
+      return { teks: "Sangat Nyaman", warna: "success", ikon: "fa-smile" };
+    } else if (suhu > 27 && suhu < 32) {
+      return { teks: "Cukup Hangat", warna: "warning", ikon: "fa-meh" };
+    } else {
+      return { teks: "Nyalakan Kipas/AC", warna: "danger", ikon: "fa-frown" };
     }
-    return out;
   }
 
-  // ====================== 1. STAT CARDS ======================
-  // "Hari ini" dihitung dari data riwayat 24 jam.
-  (function isiStatHariIni() {
-    var h = bangunRiwayat("24");
-    var iMax = h.suhu.indexOf(Math.max.apply(null, h.suhu));
-    var iMin = h.suhu.indexOf(Math.min.apply(null, h.suhu));
-    document.getElementById("avgSuhu").textContent = rata(h.suhu).toFixed(1) + " °C";
-    document.getElementById("avgHumi").textContent = "Kelembaban rata-rata " + Math.round(rata(h.humi)) + " %";
-    document.getElementById("maxMin").textContent = h.suhu[iMax] + "° / " + h.suhu[iMin] + "°";
-    document.getElementById("maxMinWaktu").textContent = "Max " + h.label[iMax] + " · Min " + h.label[iMin];
-  })();
+  // ====================== 1. STAT CARDS (DIGABUNG AGAR TIDAK BENTROK) ======================
+  var URL_RINGKASAN = "{{ url('api/history-dhtmq/ringkasan') }}";
+  var URL_REALTIME  = "{{ url('api/history-dhtmq/realtime') }}";
 
-  function updateNyaman(t, h) {
-    var di = indeksNyaman(t, h), k = kategoriNyaman(di);
-    document.getElementById("idxNyaman").textContent = di.toFixed(1);
-    var b = document.getElementById("badgeNyaman");
-    b.textContent = k.teks;
-    b.className = "badge badge-" + k.warna + " align-middle";
-    var ico = document.getElementById("icoNyaman");
-    ico.className = "icon-big text-center bubble-shadow-small icon-" + k.warna;
-    ico.innerHTML = '<i class="fas ' + k.ikon + '"></i>';
+  // Fungsi untuk Card 1 & 2 (Rata-rata, Max, Min Hari Ini)
+  function muatRingkasan() {
+    fetch(URL_RINGKASAN, { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.jumlah === 0) {
+          document.getElementById("avgSuhu").textContent = "0 °C";
+          document.getElementById("avgHumi").textContent = "Belum ada data hari ini";
+          document.getElementById("maxMin").textContent = "-";
+          document.getElementById("maxMinWaktu").textContent = "-";
+          return;
+        }
+
+        // Card 1: Rata-Rata Hari Ini
+        document.getElementById("avgSuhu").textContent = res.avg_suhu + " °C";
+        document.getElementById("avgHumi").textContent = "Kelembaban rata-rata " + res.avg_humi + " %";
+
+        // Card 2: Suhu Max / Min Hari Ini
+        document.getElementById("maxMin").textContent = res.max_suhu + "° / " + res.min_suhu + "°";
+        document.getElementById("maxMinWaktu").textContent = "Max " + res.max_waktu + " · Min " + res.min_waktu;
+      });
   }
 
-  // ====================== 2. LINE CHART HISTORI ======================
-  var data0 = bangunRiwayat("24");
+  // Fungsi khusus untuk Card 3 (Kondisi Kenyamanan Ruangan - Suhu Realtime)
+  function muatSuhuRealtime() {
+    fetch(URL_REALTIME, { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        var suhuAktual = res.suhu; // Mengambil suhu murni saat ini
+        var kat = kategoriNyaman(suhuAktual);
+
+        // Update khusus Card 3
+        document.getElementById("idxNyaman").textContent = suhuAktual.toFixed(1) + "°C";
+        var b = document.getElementById("badgeNyaman");
+        b.textContent = kat.teks;
+        b.className = "badge badge-" + kat.warna + " align-middle";
+        
+        var ico = document.getElementById("icoNyaman");
+        ico.className = "icon-big text-center bubble-shadow-small icon-" + kat.warna;
+        ico.innerHTML = '<i class="fas ' + kat.ikon + '"></i>';
+      });
+  }
+
+  // Panggil pertama kali dan jalankan polling tiap 5 detik secara terpisah
+  muatRingkasan();
+  muatSuhuRealtime();
+  
+  setInterval(muatRingkasan, 5000);
+  setInterval(muatSuhuRealtime, 5000);
+
+  // ====================== 2. GRAFIK HISTORI ======================
+  // Mengambil data dari endpoint riwayat controller Anda (/api/history-dhtmq/riwayat)
+  var URL_RIWAYAT = "{{ url('api/history-dhtmq/riwayat') }}";
+  
   var historiChart = new Chart(document.getElementById("historiChart").getContext("2d"), {
     type: "line",
     data: {
-      labels: data0.label,
+      labels: [],
       datasets: [
         { label: "Suhu (°C)", yAxisID: "y-suhu", borderColor: "#fdaf4b", backgroundColor: "rgba(253,175,75,0.15)",
-          pointBackgroundColor: "#fdaf4b", pointRadius: 3, borderWidth: 2, lineTension: 0.3, fill: false, data: data0.suhu },
+          pointBackgroundColor: "#fdaf4b", pointRadius: 3, borderWidth: 2, lineTension: 0.3, fill: false, data: [] },
         { label: "Kelembaban (%)", yAxisID: "y-humi", borderColor: "#177dff", backgroundColor: "rgba(23,125,255,0.15)",
-          pointBackgroundColor: "#177dff", pointRadius: 3, borderWidth: 2, lineTension: 0.3, fill: false, data: data0.humi },
+          pointBackgroundColor: "#177dff", pointRadius: 3, borderWidth: 2, lineTension: 0.3, fill: false, data: [] },
       ],
     },
     options: {
@@ -220,38 +211,49 @@
       scales: {
         yAxes: [
           { id: "y-suhu", position: "left",  scaleLabel: { display: true, labelString: "Suhu (°C)" },
-            ticks: { suggestedMin: 22, suggestedMax: 36 } },
+            ticks: { suggestedMin: 20, suggestedMax: 50 } },
           { id: "y-humi", position: "right", scaleLabel: { display: true, labelString: "Kelembaban (%)" },
-            ticks: { suggestedMin: 40, suggestedMax: 90 }, gridLines: { drawOnChartArea: false } },
+            ticks: { suggestedMin: 20, suggestedMax: 100 }, gridLines: { drawOnChartArea: false } },
         ],
         xAxes: [{ gridLines: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0 } }],
       },
     },
   });
 
-  function setRentang(key) {
-    var d = bangunRiwayat(key);
-    historiChart.data.labels = d.label;
-    historiChart.data.datasets[0].data = d.suhu;
-    historiChart.data.datasets[1].data = d.humi;
-    historiChart.update();
-    document.getElementById("labelRentang").textContent = RENTANG[key].nama;
-    document.getElementById("infoRentang").textContent =
-      RENTANG[key].nama + " · " + d.suhu.length + " titik data · rata-rata " +
-      rata(d.suhu).toFixed(1) + " °C / " + Math.round(rata(d.humi)) + " %";
-    document.querySelectorAll("#filterRentang .dropdown-item").forEach(function (a) {
-      a.classList.toggle("active", a.getAttribute("data-range") === key);
-    });
+  function setRentang(key, namaRentang) {
+    fetch(URL_RIWAYAT + "?rentang=" + key, { headers: { Accept: "application/json" } })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        historiChart.data.labels = d.waktu;
+        historiChart.data.datasets[0].data = d.suhu;
+        historiChart.data.datasets[1].data = d.humi;
+        historiChart.update();
+
+        document.getElementById("labelRentang").textContent = namaRentang;
+        var avgS = d.suhu.length > 0 ? rata(d.suhu).toFixed(1) : 0;
+        var avgH = d.humi.length > 0 ? Math.round(rata(d.humi)) : 0;
+        document.getElementById("infoRentang").textContent =
+          namaRentang + " · " + d.suhu.length + " titik data · rata-rata " + avgS + " °C / " + avgH + " %";
+      });
   }
+
   document.querySelectorAll("#filterRentang .dropdown-item").forEach(function (a) {
-    a.addEventListener("click", function (e) { e.preventDefault(); setRentang(a.getAttribute("data-range")); });
+    a.addEventListener("click", function (e) { 
+      e.preventDefault(); 
+      var range = a.getAttribute("data-range");
+      var nama = a.textContent;
+      document.querySelectorAll("#filterRentang .dropdown-item").forEach(function(el) { el.classList.remove("active"); });
+      a.classList.add("active");
+      setRentang(range, nama);
+    });
   });
-  setRentang("24");
+
+  // Load awal grafik 24 jam
+  setRentang("24", "24 Jam Terakhir");
 
   // ====================== 3. TABEL LOG & EXPORT ======================
-  // Sumber: tabel history_dhtmq lewat GET /api/history-dhtmq/log (10 baris terbaru)
   var URL_LOG = "{{ url('api/history-dhtmq/log') }}";
-  var logRows = [];     // terbaru di indeks 0, maksimal 10 baris
+  var logRows = [];     
 
   function renderLog(gagal) {
     var html = "";
@@ -260,12 +262,15 @@
              (gagal ? "Gagal memuat data dari server." : "Belum ada data riwayat.") + "</td></tr>";
     }
     logRows.forEach(function (r, i) {
+      var statusLevel = (r.suhu >= 32) ? "Bahaya" : (r.suhu >= 28 ? "Waspada" : "Normal");
+      var warnaBadge = (r.suhu >= 32) ? "danger" : (r.suhu >= 28 ? "warning" : "success");
+      
       html += "<tr>" +
         '<td class="ps-4">' + (i + 1) + "</td>" +
         "<td>" + r.waktu + "</td>" +
-        "<td>" + r.suhu.toFixed(1) + " °C</td>" +
+        "<td>" + parseFloat(r.suhu).toFixed(1) + " °C</td>" +
         "<td>" + Math.round(r.humi) + " %</td>" +
-        '<td><span class="badge badge-' + r.warna + '">' + r.status + "</span></td>" +
+        '<td><span class="badge badge-' + warnaBadge + '">' + statusLevel + "</span></td>" +
         "</tr>";
     });
     document.getElementById("logBody").innerHTML = html;
@@ -275,22 +280,14 @@
     fetch(URL_LOG, { headers: { Accept: "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (data) {
-        logRows = data.map(function (d) {
-          var suhu = +d.suhu, humi = +d.humi;
-          var lv = Math.max(levelSuhu(suhu), levelHumi(humi));
-          return { waktu: d.waktu, suhu: suhu, humi: humi, status: NAMA_LEVEL[lv], warna: WARNA_LEVEL[lv] };
-        });
+        logRows = data;
         renderLog();
       })
-      .catch(function () { renderLog(true); });   // baris lama tetap tampil kalau sebelumnya sudah ada
+      .catch(function () { renderLog(true); });   
   }
+
   muatLog();
   setInterval(muatLog, 5000);
-
-  // Indeks kenyamanan tetap memakai pembacaan real-time (dashboard-realtime)
-  function segarkanNyaman() { var d = ambilData(); updateNyaman(d.suhu, d.humi); }
-  segarkanNyaman();
-  setInterval(segarkanNyaman, 5000);
 
   // ---- export ----
   function angka(n, desimal) { return String(n.toFixed(desimal)).replace(".", CSV_DESIMAL); }
@@ -307,7 +304,8 @@
     var baris = ["No", "Timestamp", "Suhu (C)", "Kelembaban (%)", "Status"].join(CSV_PEMISAH);
     var isi = [baris];
     logRows.forEach(function (r, i) {
-      isi.push([i + 1, r.waktu, angka(r.suhu, 1), angka(r.humi, 0), r.status].join(CSV_PEMISAH));
+      var statusLevel = (r.suhu >= 32) ? "Bahaya" : (r.suhu >= 28 ? "Waspada" : "Normal");
+      isi.push([i + 1, r.waktu, angka(+r.suhu, 1), angka(+r.humi, 0), statusLevel].join(CSV_PEMISAH));
     });
     unduh(isi.join("\r\n"), "log-suhu-kelembaban_" + stamp() + ".csv", "text/csv");
   });
@@ -315,8 +313,9 @@
   document.getElementById("btnExcel").addEventListener("click", function () {
     var t = '<table border="1"><tr><th>No</th><th>Timestamp</th><th>Suhu (C)</th><th>Kelembaban (%)</th><th>Status</th></tr>';
     logRows.forEach(function (r, i) {
-      t += "<tr><td>" + (i + 1) + "</td><td>" + r.waktu + "</td><td>" + angka(r.suhu, 1) +
-           "</td><td>" + angka(r.humi, 0) + "</td><td>" + r.status + "</td></tr>";
+      var statusLevel = (r.suhu >= 32) ? "Bahaya" : (r.suhu >= 28 ? "Waspada" : "Normal");
+      t += "<tr><td>" + (i + 1) + "</td><td>" + r.waktu + "</td><td>" + angka(+r.suhu, 1) +
+           "</td><td>" + angka(+r.humi, 0) + "</td><td>" + statusLevel + "</td></tr>";
     });
     t += "</table>";
     var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">' +

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\HistoryDhtmq;
+use App\Models\SensorDhtmq;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,8 +12,26 @@ class ControllerHistoryDhtmq extends Controller
     protected $HistoryDhtmq;
 
     public function __construct() {
+        $this->db = DB::connection();
+        $this->builder = DB::table('sensor_dhtmq');
+
+        $this->SensorDhtmq = new SensorDhtmq();
         $this->HistoryDhtmq = new HistoryDhtmq();
     }
+
+    public function getRealtime()
+{
+    $terkini = SensorDhtmq::where('id', 1)->first(); // atau ambil yang paling baru
+
+    if (!$terkini) {
+        return response()->json(['suhu' => 0, 'humi' => 0]);
+    }
+
+    return response()->json([
+        'suhu' => (float) $terkini->suhu,
+        'humi' => (float) $terkini->kelembaban, // sesuaikan nama kolom kelembaban di tabel sensor_dhtmq
+    ]);
+}
 
     // grafik: rata-rata per jam (24 jam), per 6 jam (7 hari), per hari (30 hari)
     public function getRiwayat(Request $request)
